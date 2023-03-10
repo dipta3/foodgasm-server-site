@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const { error } = require('console');
+const jwt = require('jsonwebtoken');
 require('dotenv').config()
 const app = express();
 const port = process.env.PORT || 5000;
@@ -14,10 +14,18 @@ app.use(cors())
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.hc7ua.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+
 async function run() {
     try {
         const foodGasmCollention = client.db('foodGasm').collection('foods');
         const reviewCollection = client.db('foodGasm').collection('reviews')
+
+
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
+            res.send({ token })
+        })
 
         app.get('/foods', async (req, res) => {
             const query = {}
@@ -40,6 +48,12 @@ async function run() {
                     email: req.query.email
                 }
             }
+            const cursor = reviewCollection.find(query);
+            const reviews = await cursor.toArray()
+            res.send(reviews);
+        })
+        app.get('/reviews', async (req, res) => {
+            let query = {};
             const cursor = reviewCollection.find(query);
             const reviews = await cursor.toArray()
             res.send(reviews);
